@@ -3,7 +3,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.core.cache import cache
 
 import requests
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import multiprocessing
 
 '''
@@ -35,10 +35,6 @@ return json object for an HN post
 def get_hn_post(id):
     # TODO: validate id
 
-    # https://stackoverflow.com/questions/30967822/when-do-i-use-path-params-vs-query-params-in-a-restful-api
-
-    # this is a bottleneck, but much faster than loading the actual website
-    # with post caching it should be reasonable
     hn = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{id}.json").json()
 
     return hn
