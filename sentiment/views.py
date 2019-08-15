@@ -5,6 +5,9 @@ from django.core.cache import cache
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import multiprocessing
+import logging
+
+log = logging.getLogger(__name__)
 
 '''
 right to left composition for unary functions
@@ -47,7 +50,7 @@ def should_filter(json):
 
     is_filter = sent["compound"] < 0
     if is_filter:
-        print(f"Filtered: {json['title']}")
+        log.debug(f"Filtered: {json['title']}")
 
     return is_filter
 
@@ -55,11 +58,13 @@ def id_to_bool(id):
     return get_cache_or_else(id, compose(int, should_filter, get_hn_post))
 
 def index(request):
+    log.debug("Got request")
     try:
         ids = request.GET.getlist("id")
     except KeyError:
         return HttpResponseBadRequest("No ids given")
 
+    # TODO: look into async/wait here
     with multiprocessing.Pool() as pool:
         sentiment_list = list(pool.map(id_to_bool, ids))
 

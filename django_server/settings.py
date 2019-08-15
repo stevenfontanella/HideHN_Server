@@ -139,3 +139,22 @@ CACHES = {
         'LOCATION': '127.0.0.1:11211'
     }
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/django-logs/django.log',
+        },
+    },
+    'loggers': {
+        'sentiment': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
