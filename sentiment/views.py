@@ -50,7 +50,7 @@ def should_filter(json):
 
     is_filter = sent["compound"] < 0
     if is_filter:
-        log.debug(f"Filtered: {json['title']}")
+        log.info("Filtered %s", title)
 
     return is_filter
 
@@ -58,13 +58,10 @@ def id_to_bool(id):
     return get_cache_or_else(id, compose(int, should_filter, get_hn_post))
 
 def index(request):
-    log.debug("Got request")
-    try:
-        ids = request.GET.getlist("id")
-    except KeyError:
-        return HttpResponseBadRequest("No ids given")
+    log.info("Got reqeuest: %s", request)
 
-    # TODO: look into async/wait here
+    ids = request.GET.getlist("id")
+
     with multiprocessing.Pool() as pool:
         sentiment_list = pool.map(id_to_bool, ids)
 
@@ -73,4 +70,3 @@ def index(request):
         pool.join()
 
     return JsonResponse(sentiment_list, safe=False)
-
