@@ -1,3 +1,6 @@
+*.log
+
+# emacs temp files
 .#*
 
 __pycache__/
