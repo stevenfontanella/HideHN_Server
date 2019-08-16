@@ -66,7 +66,11 @@ def index(request):
 
     # TODO: look into async/wait here
     with multiprocessing.Pool() as pool:
-        sentiment_list = list(pool.map(id_to_bool, ids))
+        sentiment_list = pool.map(id_to_bool, ids)
+
+        # these lines are needed, otherwise the context manager __exit__ hangs
+        pool.close()
+        pool.join()
 
     return JsonResponse(sentiment_list, safe=False)
 
