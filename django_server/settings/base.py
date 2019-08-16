@@ -22,13 +22,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '***REMOVED***'
 
-# TODO: environment variable here?
-ALLOWED_HOSTS = [
-    "dev-env.jmi7dxxdxp.us-west-2.elasticbeanstalk.com",
-    "localhost"
-]
-
-
 # Application definition
 
 INSTALLED_APPS = [

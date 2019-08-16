@@ -3,7 +3,7 @@ from .base import *
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    "dev-env.jmi7dxxdxp.us-west-2.elasticbeanstalk.com"
+    "prod.jmi7dxxdxp.us-west-2.elasticbeanstalk.com"
 ]
 
 LOGGING = {
