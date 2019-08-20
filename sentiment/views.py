@@ -2,35 +2,15 @@ from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.core.cache import cache
 
+from sentiment.models import Post
+
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-import multiprocessing
+import multiprocessing as mp
 import logging
 
 log = logging.getLogger(__name__)
-
-'''
-right to left composition for unary functions
-'''
-def compose(*fns):
-    def inner(x):
-        curr = x
-        for f in reversed(fns):
-            curr = f(curr)
-        return curr
-    return inner
-
-'''
-Lookup the key, or else add the corresponding value to the cache and return it
-@fn - function from key to value
-'''
-def get_cache_or_else(key, fn):
-    val = cache.get(key)
-    if val is None:
-        val = fn(key)
-        cache.set(key, val)
-
-    return val
+sentiment_analyzer = SentimentIntensityAnalyzer()
 
 '''
 return json object for an HN post 
@@ -39,34 +19,38 @@ def get_hn_post(id):
     # TODO: validate id
 
     hn = requests.get(f"https://hacker-news.firebaseio.com/v0/item/{id}.json").json()
-
     return hn
 
-def should_filter(json):
+def sentiment(id):
+    json = get_hn_post(id)
     title = json["title"]
 
-    sentiment_analyzer = SentimentIntensityAnalyzer()
-    sent = sentiment_analyzer.polarity_scores(title)
+    return sentiment_analyzer.polarity_scores(title)["compound"]
 
-    is_filter = sent["compound"] < 0
-    if is_filter:
-        log.info("Filtered %s", title)
-
-    return is_filter
-
-def id_to_bool(id):
-    return get_cache_or_else(id, compose(int, should_filter, get_hn_post))
+def id_to_record(id):
+    return Post(id, sentiment(id))
 
 def index(request):
-    log.info("Got reqeuest: %s", request)
+    log.info("Got request: %s", request)
 
-    ids = request.GET.getlist("id")
+    ids = list(map(int, request.GET.getlist("id")))
+    sentiments = Post.objects.in_bulk(ids)
 
-    with multiprocessing.Pool() as pool:
-        sentiment_list = pool.map(id_to_bool, ids)
+    missing = list(filter(lambda x: x not in sentiments, ids))
+    with mp.Pool() as pool:
+        new_posts = pool.map(id_to_record, missing)
 
         # these lines are needed, otherwise the context manager __exit__ hangs
-        pool.close()
-        pool.join()
+        # pool.close()
+        # pool.join()
+    sentiments.update(zip(missing, new_posts))
 
-    return JsonResponse(sentiment_list, safe=False)
+    # if there was a conflict, then another request must have caused the entry to be added
+    # so there's not issue; we can just ignore it
+    Post.objects.bulk_create(new_posts)
+    # sentiments = Post.objects.in_bulk(ids)
+
+    sentiment_list = map(lambda id: int(sentiments[id].sentiment < 0), ids)
+    # sentiment_list = map(lambda post: post.sentiment < 0, Post.objects.in_bulk(ids))
+    # safe=False to send a list
+    return JsonResponse(list(sentiment_list), safe=False)
