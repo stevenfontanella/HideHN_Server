@@ -34,6 +34,7 @@ def index(request):
     log.info("Got request: %s", request)
 
     ids = list(map(int, request.GET.getlist("id")))
+
     sentiments = Post.objects.in_bulk(ids)
 
     missing = list(filter(lambda x: x not in sentiments, ids))
@@ -41,8 +42,8 @@ def index(request):
         new_posts = pool.map(id_to_record, missing)
 
         # these lines are needed, otherwise the context manager __exit__ hangs
-        # pool.close()
-        # pool.join()
+        pool.close()
+        pool.join()
     sentiments.update(zip(missing, new_posts))
 
     # if there was a conflict, then another request must have caused the entry to be added
